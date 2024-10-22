@@ -12,9 +12,10 @@ use urlencoding::decode;
 use tiny_http::*;
 
 fn main() {
-    let server = Arc::new(tiny_http::Server::http("127.0.0.1:8080").unwrap());
+    println!("Initializing server . . .");
+    let server = Arc::new(tiny_http::Server::http("0.0.0.0:8080").unwrap());
     let sqlite = Arc::new(Mutex::new(
-        Connection::open_thread_safe(Path::new("entries.db")).unwrap(),
+        Connection::open_thread_safe(Path::new("data/entries.db")).unwrap(),
     ));
 
     let query = "
@@ -22,7 +23,7 @@ fn main() {
     ";
 
     sqlite.lock().unwrap().execute(query).unwrap();
-    println!("Now listening on port 8080");
+    println!("Now listening on port 0.0.0.0:8080");
 
     let mut handles = Vec::new();
 
@@ -105,7 +106,9 @@ fn get_entries(
     match request {
         None => Some(out),
         Some(rq) => {
-            let _ = rq.respond(Response::from_string(out.0.into_string()).with_header(out.1));
+            let response =
+                rq.respond(Response::from_string(out.0.into_string()).with_header(out.1));
+            println!("{:?}", response);
             None
         }
     }
@@ -162,10 +165,11 @@ fn file_route(request: Request) -> Option<(Markup, Header)> {
             field: "Content-Type".parse().unwrap(),
             value: AsciiString::from_ascii(get_content_type(path)).unwrap(),
         });
-
-        let _ = request.respond(response);
+        let success = request.respond(response);
+        println!("Serving: {:?}", success);
         None
     } else {
+        println!("File: {:?} not found!", path);
         let rep = tiny_http::Response::new_empty(tiny_http::StatusCode(404));
         let _ = request.respond(rep);
         None
