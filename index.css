@@ -1,0 +1,43 @@
+@import url("https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400..700&display=swap");
+
+@font-face {
+  font-family: win95;
+  src: url("W95FA.otf") format("opentype");
+}
+
+body>* {
+  font-family: win95;
+}
+
+#entries {
+  width: 100%;
+  max-height: 50vh;
+  overflow-y: scroll;
+  display: flex;
+  flex-direction: column-reverse;
+  border: 1px solid gray;
+}
+
+.entry {
+  border: 1px solid gray;
+}
+
+.entry_name {
+  font-size: 0.8em;
+  display: flex;
+  align-items: center;
+}
+
+.entry_name>* {
+  margin: 0px;
+}
+
+.entry_name :first-child {
+  font-size: 1.1em;
+  margin-right: 4px;
+  font-weight: bold;
+}
+
+.entry_name :last-child {
+  margin-left: auto;
+}
