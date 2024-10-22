@@ -1,49 +1,57 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <title></title>
-    <script src="https://unpkg.com/htmx.org@2.0.3"></script>
-    <link rel="stylesheet" href="/index.css" />
-  </head>
 
-  <body>
-    <script>
-      function convertToLocalTime(sinceEpoch) {
-        let date = new Date(sinceEpoch * 1000);
-        return date.toLocaleString();
-      }
-      function time_convert() {
-        console.log("hello");
-        let elems = document.querySelectorAll(".time");
-        console.log(elems);
-        elems.forEach((element) => {
-          if (/^[0-9]+$/.test(element.innerHTML)) {
-            console.log(element);
-            element.innerHTML = convertToLocalTime(parseInt(element.innerHTML));
-            console.log(element.innerHTML);
-          }
-        });
-      }
-      document.body.addEventListener("htmx:oobAfterSwap", time_convert);
-    </script>
+<head>
+  <meta charset="utf-8" />
+  <title></title>
+  <script src="https://unpkg.com/htmx.org@2.0.3"></script>
+  <link rel="stylesheet" href="/index.css" />
+</head>
 
-    <div id="entries" hx-get="/test" hx-trigger="load"></div>
+<body>
+  <script>
+    function convertToLocalTime(sinceEpoch) {
+      let date = new Date(sinceEpoch * 1000);
+      return date.toLocaleString();
+    }
+    function time_convert() {
+      console.log("hello");
+      let elems = document.querySelectorAll(".time");
+      console.log(elems);
+      elems.forEach((element) => {
+        if (/^[0-9]+$/.test(element.innerHTML)) {
+          console.log(element);
+          element.innerHTML = convertToLocalTime(parseInt(element.innerHTML));
+          console.log(element.innerHTML);
+        }
+      });
+    }
+    document.body.addEventListener("htmx:oobAfterSwap", time_convert);
+  </script>
 
-    <form
-      id="inputForm"
-      hx-post
-      hx-swap="none"
-      hx-on::after-request="this.reset(); time_convert()"
-    >
-      <label for=" name">Name:<span style="color: red">*</span></label>
-      <input type="text" id="name" name="name" required /><br /><br />
-      <label for="domain">Domain (website):</label>
-      <input type="text" id="domain" name="domain" /><br /><br />
-      <label for="message">Message:<span style="color: red">*</span></label>
-      <input type="text" id="message" name="message" required /><br /><br />
-      <input type="color" name="color" value="#000000" />
-      <button type="submit">Submit</button>
-    </form>
-  </body>
+  <div id="entries" hx-get="/test" hx-trigger="load"></div>
+
+  <form id="inputForm" hx-post hx-swap="none" hx-on::after-request="this.reset(); time_convert()">
+    <div style="display: flex; width: 95%; gap: 20px">
+      <div style="display: flex; flex-direction: column; flex-basis: 100%">
+        <div style="display: flex; flex-direction: row; gap: 10px; align-items: center;">
+          <label for=" name">Name:<span style="color: red">*</span></label>
+          <input type="color" name="color" id="color" required value="#000000" />
+        </div>
+        <input type="text" id="name" name="name" required style="width: 100%" />
+      </div>
+      <div style="display: flex; flex-direction: column; flex-basis: 100%">
+        <label for="domain">Domain:</label>
+        <input type="text" id="domain" name="domain" style="width: 100%" />
+      </div>
+    </div>
+    <div>
+      <div style="display: flex; flex-direction: column; width: 95%">
+        <label for="message">Message:<span style="color: red">*</span></label>
+        <input type="text" id="message" name="message" size=200 style="width: 100%" required /><br />
+        <button type="submit">Submit</button>
+      </div>
+  </form>
+</body>
+
 </html>

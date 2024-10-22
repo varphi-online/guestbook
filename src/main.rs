@@ -43,7 +43,6 @@ fn main() {
                     Method::Post => {
                         let mut content = String::new();
                         request.as_reader().read_to_string(&mut content).unwrap();
-                        println!("{}", decode(content.as_str()).unwrap());
                         update_db(decode(content.as_str()).unwrap().to_string(), &sqlite);
                         let (html, header) = get_entries(&sqlite, None).unwrap();
                         let _ = request.respond(
@@ -86,9 +85,9 @@ fn get_entries(
                             style=(format!("color: {};",row.read::<&str, _>("color"))) {
                                 (row.read::<&str, _>("name"))
                         }
-                        @let domain = row.read::<&str, _>("domain");
+                        @let domain = row.read::<&str, _>("domain").strip_prefix("https://").unwrap_or("");
                         @if !domain.is_empty() {
-                            a href=(domain) style="color: gray;" {"@"(domain.strip_prefix("https://").unwrap_or(""))}
+                            a href=(format!("https://{}",domain)) target="_blank" style="color: gray;" {"@"(domain)}
                         }
                         p.time {(row.read::<i64, _>("time"))}
                     }
@@ -112,26 +111,27 @@ fn get_entries(
 }
 
 fn update_db(content: String, database: &Arc<Mutex<ConnectionThreadSafe>>) {
-    let name = &content[5..content.find("&domain=").unwrap()];
-    let mut domain =
-        &content[content.find("&domain=").unwrap() + 8..content.find("&message=").unwrap()];
+    println!("String: {}, is len {}", content, content.len());
+    let color = &content[content.find("color=").expect("No color id") + 6
+        ..content.find("&name=").expect("No name id")];
+    let name = &content[content.find("&name=").expect("No name id") + 6
+        ..content.find("&domain=").expect("No domain id")];
+    let mut domain = &content[content.find("&domain=").expect("No domain id") + 8
+        ..content.find("&message=").expect("No message id")];
     let owned_domain: String;
     if !domain.starts_with("https://") {
         owned_domain = format!("https://{}", domain);
         domain = owned_domain.as_str();
     }
-    let message =
-        &content[content.find("&message=").unwrap() + 9..content.find("&color=").unwrap()];
+    let message = &content[content.find("&message=").expect("No message id") + 9..content.len()];
     let now = SystemTime::now()
         .duration_since(SystemTime::UNIX_EPOCH)
         .unwrap()
         .as_secs() as i64;
-    let color = &content[content.find("&color=").unwrap() + 7..content.len()];
     let query = "INSERT INTO entries VALUES (:name,:domain,:message,:color,:time,true)";
-    // Lock the database connection
 
-    let db = database.lock().unwrap(); // Lock the mutex and hold a reference
-    let mut statement = db.prepare(query).unwrap(); // Prepare the statement inside the lock
+    let db = database.lock().unwrap();
+    let mut statement = db.prepare(query).unwrap();
     statement
         .bind_iter::<_, (_, Value)>([
             (":name", name.into()),
@@ -145,7 +145,6 @@ fn update_db(content: String, database: &Arc<Mutex<ConnectionThreadSafe>>) {
 }
 
 fn file_route(request: Request) -> Option<(Markup, Header)> {
-    println!("{}", request.url());
     let path = Path::new(match request.url() {
         "/" => "index.html",
         _ => request
