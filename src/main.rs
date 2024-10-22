@@ -14,7 +14,7 @@ use tiny_http::*;
 fn main() {
     let server = Arc::new(tiny_http::Server::http("127.0.0.1:8080").unwrap());
     let sqlite = Arc::new(Mutex::new(
-        Connection::open_thread_safe(Path::new("test.db")).unwrap(),
+        Connection::open_thread_safe(Path::new("entries.db")).unwrap(),
     ));
 
     let query = "
@@ -36,7 +36,7 @@ fn main() {
                 match request.method() {
                     Method::Get => {
                         match request.url() {
-                            "/test" => get_entries(&sqlite, Some(request)),
+                            "/entries" => get_entries(&sqlite, Some(request)),
                             _ => file_route(request),
                         };
                     }
@@ -87,7 +87,8 @@ fn get_entries(
                         }
                         @let domain = row.read::<&str, _>("domain").strip_prefix("https://").unwrap_or("");
                         @if !domain.is_empty() {
-                            a href=(format!("https://{}",domain)) target="_blank" style="color: gray;" {"@"(domain)}
+                            a href=(format!("https://{}",domain)) target="_blank" style="color: lightgray;" {
+                            span style="font-size: 0.7em; margin: 0px;" {"@"}(domain)}
                         }
                         p.time {(row.read::<i64, _>("time"))}
                     }

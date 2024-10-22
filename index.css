@@ -5,29 +5,92 @@
   src: url("W95FA.otf") format("opentype");
 }
 
+body {
+  background-color: #c6c3c6;
+}
+
 body>* {
   font-family: win95;
   overflow: hidden;
 }
 
+p {
+  margin: 5px;
+  text-wrap-style: pretty;
+  overflow-wrap: break-word;
+}
+
 #entries {
   width: 100%;
-  max-height: 50vh;
+  flex-grow: 1;
   overflow-y: scroll;
   display: flex;
   flex-direction: column-reverse;
-  border: 1px solid gray;
+  box-shadow:
+    inset -1px -1px #f1f0f1,
+    inset -2px -2px #eaebea,
+    inset 1px 1px #323132,
+    inset 2px 2px #414041;
   background-color: white;
 }
 
+form {
+  background-color: #c6c3c6;
+  padding: 10px;
+  box-shadow:
+    inset -1px -1px #f1f0f1,
+    inset -2px -2px #eaebea,
+    inset 1px 1px #323132,
+    inset 2px 2px #414041;
+}
+
+button {
+  border: none;
+  background-color: #c6c3c6;
+  box-shadow:
+    inset 1px 1px #f1f0f1,
+    inset 1.5px 2px #eaebea,
+    1px 1px #323132,
+    2px 2px #414041;
+}
+
+button:active {
+  background-color: #e0e0e0;
+  box-shadow:
+    inset -1px -1px #f1f0f1,
+    inset -2px -2px #eaebea,
+    inset 1px 1px #323132,
+    inset 2px 2px #414041;
+}
+
+input[type="text"],
+textarea {
+  resize: none;
+  border: none;
+  box-shadow:
+    inset -1px -1px #f1f0f1,
+    inset -2px -2px #eaebea,
+    inset 1px 1px #323132,
+    inset 2px 2px #414041;
+}
+
+input[type="text"]:focus,
+textarea:focus {
+  outline: none;
+}
+
 .entry {
-  border: 1px solid gray;
+  border-top: 1px solid gray;
+  padding: 7px;
+  padding-top: 3px;
 }
 
 .entry_name {
   font-size: 0.8em;
   display: flex;
   align-items: center;
+  padding-bottom: 3px;
+  border-bottom: 1px dashed gray;
 }
 
 .entry_name>* {

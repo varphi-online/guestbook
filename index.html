@@ -12,7 +12,11 @@
   <script>
     function convertToLocalTime(sinceEpoch) {
       let date = new Date(sinceEpoch * 1000);
-      return date.toLocaleString();
+      let userLocale = navigator.language || 'en-US';
+      return date.toLocaleDateString(userLocale, {
+        year: '2-digit', month: "2-digit",
+        day: "numeric"
+      }) + ", " + date.toLocaleTimeString(userLocale, {hour: 'numeric', minute: "numeric"});
     }
     function time_convert() {
       console.log("hello");
@@ -28,30 +32,32 @@
     }
     document.body.addEventListener("htmx:oobAfterSwap", time_convert);
   </script>
-
-  <div id="entries" hx-get="/test" hx-trigger="load"></div>
-
-  <form id="inputForm" hx-post hx-swap="none" hx-on::after-request="this.reset(); time_convert()">
-    <div style="display: flex; width: 95%; gap: 20px">
-      <div style="display: flex; flex-direction: column; flex-basis: 100%">
-        <div style="display: flex; flex-direction: row; gap: 10px; align-items: center;">
-          <label for=" name">Name:<span style="color: red">*</span></label>
-          <input type="color" name="color" id="color" required value="#000000" />
+  <div style="display: flex; flex-direction: column; height:95vh;width:100%">
+    <div id="entries" hx-get="/entries" hx-trigger="load"></div>
+    <p style="text-align: center">Leave a message for everyone to see!</p>
+    <form id="inputForm" hx-post hx-swap="none" hx-on::after-request="this.reset(); time_convert()">
+      <div style="display: flex; width: calc(100% - 5px); gap: 20px">
+        <div style="display: flex; flex-direction: column; flex-basis: 100%">
+          <div style="display: flex; flex-direction: row; gap: 10px; align-items: center;">
+            <label for=" name">Name:<span style="color: red">*</span></label>
+            <input type="color" name="color" id="color" required value="#000000" />
+          </div>
+          <input type="text" id="name" name="name" autocomplete="off" required style="width: 100%" />
         </div>
-        <input type="text" id="name" name="name" required style="width: 100%" />
+        <div style="display: flex; flex-direction: column; flex-basis: 100%">
+          <label for="domain">Domain:</label>
+          <input type="text" id="domain" name="domain" autocomplete="off" style="width: 100%" />
+        </div>
       </div>
-      <div style="display: flex; flex-direction: column; flex-basis: 100%">
-        <label for="domain">Domain:</label>
-        <input type="text" id="domain" name="domain" style="width: 100%" />
-      </div>
-    </div>
-    <div>
-      <div style="display: flex; flex-direction: column; width: 95%">
-        <label for="message">Message:<span style="color: red">*</span></label>
-        <input type="text" id="message" name="message" size=200 style="width: 100%" required /><br />
-        <button type="submit">Submit</button>
-      </div>
-  </form>
+      <div>
+        <div style="display: flex; flex-direction: column; width: calc(100% - 5px);">
+          <label for="message">Message:<span style="color: red">*</span></label>
+          <textarea id="message" name="message" maxlength="1000" size=200
+            style="width: 100%; height:3.5em; margin-bottom:4px;" autocomplete="off" required></textarea>
+          <button type="submit">Submit</button>
+        </div>
+    </form>
+  </div>
 </body>
 
 </html>
