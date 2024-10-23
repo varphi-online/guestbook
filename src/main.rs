@@ -1,22 +1,19 @@
 use ascii::*;
 use maud::*;
 use sqlite::*;
-use std::fs::*;
-use std::path::*;
-use std::str::FromStr;
 use std::sync::{
     atomic::{AtomicBool, AtomicUsize, Ordering},
     Arc, Mutex,
 };
-use std::thread;
 use std::time::{Duration, SystemTime};
+use std::{env, fs::*, path::*, str::FromStr, thread};
 use tiny_http::*;
 use urlencoding::decode;
 
 fn main() {
+    let addr: String = env::args().nth(1).unwrap_or("0.0.0.0:8080".to_string());
     println!("Initializing server . . .");
-    let addr = "127.0.0.1:8080";
-    let server = Arc::new(tiny_http::Server::http(addr).unwrap());
+    let server = Arc::new(tiny_http::Server::http(addr.clone()).unwrap());
     let sqlite = Arc::new(Mutex::new(
         Connection::open_thread_safe(Path::new("data/entries.db")).unwrap(),
     ));
