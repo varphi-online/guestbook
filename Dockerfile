@@ -12,7 +12,7 @@ ENV RUST_BACKTRACE=1
 
 WORKDIR /usr/src/guestbook
 
-RUN apk add --no-cache sqlite-libs
+RUN apk add --no-cache sqlite-libs sqlite
 
 RUN mkdir -p /usr/src/guestbook/data
 

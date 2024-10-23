@@ -15,7 +15,8 @@ use urlencoding::decode;
 
 fn main() {
     println!("Initializing server . . .");
-    let server = Arc::new(tiny_http::Server::http("0.0.0.0:8080").unwrap());
+    let addr = "0.0.0.0:8080";
+    let server = Arc::new(tiny_http::Server::http(addr).unwrap());
     let sqlite = Arc::new(Mutex::new(
         Connection::open_thread_safe(Path::new("data/entries.db")).unwrap(),
     ));
@@ -25,7 +26,7 @@ fn main() {
     ";
 
     sqlite.lock().unwrap().execute(query).unwrap();
-    println!("Now listening on port 0.0.0.0:8080");
+    println!("Now listening on {}", addr);
 
     let shutdown_signal = Arc::new(AtomicBool::new(false));
     let stopped_threads = Arc::new(AtomicUsize::new(0));
@@ -176,8 +177,7 @@ fn get_entries(
 }
 
 fn update_db(content: String, database: &Arc<Mutex<ConnectionThreadSafe>>) {
-    let color = &content[content.find("color=").expect("No color id") + 6
-        ..content.find("&name=").expect("No name id")];
+    let color = &content[6..13];
     let name = &content[content.find("&name=").expect("No name id") + 6
         ..content.find("&domain=").expect("No domain id")];
     let mut domain = &content[content.find("&domain=").expect("No domain id") + 8
