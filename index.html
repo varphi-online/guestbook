@@ -4,7 +4,7 @@
 <head>
   <meta charset="utf-8" />
   <title></title>
-  <script src="https://unpkg.com/htmx.org@2.0.3"></script>
+  <script src="/htmx.min.js"></script>
   <link rel="stylesheet" href="/index.css" />
 </head>
 
@@ -19,14 +19,10 @@
       }) + ", " + date.toLocaleTimeString(userLocale, {hour: 'numeric', minute: "numeric"});
     }
     function time_convert() {
-      console.log("hello");
       let elems = document.querySelectorAll(".time");
-      console.log(elems);
       elems.forEach((element) => {
         if (/^[0-9]+$/.test(element.innerHTML)) {
-          console.log(element);
           element.innerHTML = convertToLocalTime(parseInt(element.innerHTML));
-          console.log(element.innerHTML);
         }
       });
     }

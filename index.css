@@ -1,5 +1,3 @@
-@import url("https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400..700&display=swap");
-
 @font-face {
   font-family: win95;
   src: url("W95FA.otf") format("opentype");
@@ -9,7 +7,7 @@ body {
   background-color: #c6c3c6;
 }
 
-body>* {
+body > * {
   font-family: win95;
   overflow: hidden;
 }
@@ -93,7 +91,7 @@ textarea:focus {
   border-bottom: 1px dashed gray;
 }
 
-.entry_name>* {
+.entry_name > * {
   margin: 0px;
 }
 

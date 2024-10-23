@@ -22,6 +22,7 @@ COPY --from=builder /usr/src/guestbook/index.html ./
 COPY --from=builder /usr/src/guestbook/index.css ./
 COPY --from=builder /usr/src/guestbook/page_not_found.html ./
 COPY --from=builder /usr/src/guestbook/W95FA.otf ./
+COPY --from=builder /usr/src/guestbook/htmx.min.js ./
 
 VOLUME ["/usr/src/guestbook/data"]
 

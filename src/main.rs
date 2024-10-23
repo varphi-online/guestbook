@@ -106,16 +106,13 @@ fn get_entries(
     match request {
         None => Some(out),
         Some(rq) => {
-            let response =
-                rq.respond(Response::from_string(out.0.into_string()).with_header(out.1));
-            println!("{:?}", response);
+            let _ = rq.respond(Response::from_string(out.0.into_string()).with_header(out.1));
             None
         }
     }
 }
 
 fn update_db(content: String, database: &Arc<Mutex<ConnectionThreadSafe>>) {
-    println!("String: {}, is len {}", content, content.len());
     let color = &content[content.find("color=").expect("No color id") + 6
         ..content.find("&name=").expect("No name id")];
     let name = &content[content.find("&name=").expect("No name id") + 6
@@ -165,8 +162,7 @@ fn file_route(request: Request) -> Option<(Markup, Header)> {
             field: "Content-Type".parse().unwrap(),
             value: AsciiString::from_ascii(get_content_type(path)).unwrap(),
         });
-        let success = request.respond(response);
-        println!("Serving: {:?}", success);
+        let _ = request.respond(response);
         None
     } else {
         println!("File: {:?} not found!", path);
@@ -191,6 +187,7 @@ fn get_content_type(path: &Path) -> &'static str {
         "pdf" => "application/pdf",
         "htm" => "text/html; charset=utf8",
         "html" => "text/html; charset=utf8",
+        "js" => "text/javascript",
         "css" => "text/css",
         "txt" => "text/plain; charset=utf8",
         _ => "text/plain; charset=utf8",
