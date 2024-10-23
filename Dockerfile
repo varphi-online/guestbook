@@ -1,6 +1,13 @@
 FROM rust:1.69-alpine AS builder
 RUN apk add ca-certificates musl-dev
 WORKDIR /usr/src/guestbook
+
+COPY Cargo.toml .
+COPY Cargo.lock .
+# Hack to populate cache
+RUN mkdir src && echo 'fn main() {}' > src/main.rs && \
+    cargo build --release
+
 COPY . .
 
 RUN cargo build --release 
