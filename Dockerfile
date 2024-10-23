@@ -1,5 +1,5 @@
-FROM rust:1.67-alpine AS builder
-RUN apk add --no-cache musl-dev
+FROM rust:1.69-alpine AS builder
+RUN apk add ca-certificates musl-dev
 WORKDIR /usr/src/guestbook
 COPY . .
 

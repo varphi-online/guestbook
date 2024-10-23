@@ -30,7 +30,7 @@
   </script>
   <div style="display: flex; flex-direction: column; height:95vh;width:100%">
     <div id="entries" hx-get="/entries" hx-trigger="load"></div>
-    <p style="text-align: center">Leave a message for everyone to see!</p>
+    <p style="text-align: center">Feel free to leave a message!</p>
     <form id="inputForm" hx-post hx-swap="none" hx-on::after-request="this.reset(); time_convert()">
       <div style="display: flex; width: calc(100% - 5px); gap: 20px">
         <div style="display: flex; flex-direction: column; flex-basis: 100%">

@@ -4,12 +4,14 @@ use sqlite::*;
 use std::fs::*;
 use std::path::*;
 use std::str::FromStr;
-use std::sync::{Arc, Mutex};
+use std::sync::{
+    atomic::{AtomicBool, AtomicUsize, Ordering},
+    Arc, Mutex,
+};
 use std::thread;
-use std::time::SystemTime;
-use urlencoding::decode;
-
+use std::time::{Duration, SystemTime};
 use tiny_http::*;
+use urlencoding::decode;
 
 fn main() {
     println!("Initializing server . . .");
@@ -25,42 +27,103 @@ fn main() {
     sqlite.lock().unwrap().execute(query).unwrap();
     println!("Now listening on port 0.0.0.0:8080");
 
+    let shutdown_signal = Arc::new(AtomicBool::new(false));
+    let stopped_threads = Arc::new(AtomicUsize::new(0));
+
+    const NUM_THREADS: usize = 4;
+
+    let signal = shutdown_signal.clone();
+    let server_signal = server.clone();
+
+    ctrlc::set_handler(move || {
+        println!("\nReceived Ctrl+C! Initiating graceful shutdown...");
+        signal.store(true, Ordering::SeqCst);
+        // Unblock the server for each worker thread
+        for _ in 0..NUM_THREADS {
+            server_signal.unblock();
+        }
+    })
+    .expect("Error setting Ctrl-C handler");
+
     let mut handles = Vec::new();
 
-    for _ in 0..4 {
+    //https://github.com/tiny-http/tiny-http/issues/146
+
+    for thread_id in 0..NUM_THREADS {
         let server = server.clone();
         let sqlite = sqlite.clone();
+        let shutdown_signal = shutdown_signal.clone();
+        let stopped_threads = stopped_threads.clone();
 
-        handles.push(thread::spawn(move || {
-            for mut request in server.incoming_requests() {
-                println!("{:?}", request);
-                match request.method() {
-                    Method::Get => {
-                        match request.url() {
-                            "/entries" => get_entries(&sqlite, Some(request)),
-                            _ => file_route(request),
-                        };
+        let thread_builder = thread::Builder::new();
+        handles.push(
+            thread_builder
+                .spawn(move || {
+                    println!("Worker thread {} initialized", thread_id);
+                    for mut request in server.incoming_requests() {
+                        println!("{:?}", request);
+                        match request.method() {
+                            Method::Get => {
+                                match request.url() {
+                                    "/entries" => get_entries(&sqlite, Some(request)),
+                                    _ => file_route(request),
+                                };
+                            }
+                            Method::Post => {
+                                let mut content = String::new();
+                                request.as_reader().read_to_string(&mut content).unwrap();
+                                update_db(decode(content.as_str()).unwrap().to_string(), &sqlite);
+                                let (html, header) = get_entries(&sqlite, None).unwrap();
+                                let _ = request.respond(
+                                    Response::from_string(html.into_string())
+                                        .with_header(header)
+                                        .with_status_code(StatusCode::from(201)),
+                                );
+                            }
+                            _ => (),
+                        }
+                        if shutdown_signal.load(Ordering::Relaxed) {
+                            println!("Thread {} stopping gracefully", thread_id);
+                            break;
+                        }
                     }
-                    Method::Post => {
-                        let mut content = String::new();
-                        request.as_reader().read_to_string(&mut content).unwrap();
-                        update_db(decode(content.as_str()).unwrap().to_string(), &sqlite);
-                        let (html, header) = get_entries(&sqlite, None).unwrap();
-                        let _ = request.respond(
-                            Response::from_string(html.into_string())
-                                .with_header(header)
-                                .with_status_code(StatusCode::from(201)),
-                        );
-                    }
-                    _ => (),
-                }
-            }
-        }));
+                    stopped_threads.fetch_add(1, Ordering::Relaxed);
+                    println!("Thread {} stopped", thread_id);
+                })
+                .unwrap(),
+        );
     }
+
+    let shutdown_monitor = thread::Builder::new()
+        .spawn(move || {
+            println!("Shutdown monitor thread initialized");
+
+            while !shutdown_signal.load(Ordering::Relaxed) {
+                thread::sleep(Duration::from_millis(750));
+            }
+
+            println!("Waiting for threads to stop (timeout: 30 seconds)...");
+
+            for _ in 0..30 {
+                if stopped_threads.load(Ordering::Relaxed) >= NUM_THREADS {
+                    println!("All threads stopped successfully");
+                    return;
+                }
+                thread::sleep(Duration::from_secs(1));
+            }
+
+            println!("Shutdown timeout reached, forcing exit");
+            std::process::exit(1);
+        })
+        .unwrap();
 
     for h in handles {
         h.join().unwrap();
     }
+
+    shutdown_monitor.join().unwrap();
+
+    println!("Server shutdown complete.");
 }
 
 fn get_entries(
