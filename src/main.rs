@@ -15,7 +15,7 @@ use urlencoding::decode;
 
 fn main() {
     println!("Initializing server . . .");
-    let addr = "0.0.0.0:8080";
+    let addr = "127.0.0.1:8080";
     let server = Arc::new(tiny_http::Server::http(addr).unwrap());
     let sqlite = Arc::new(Mutex::new(
         Connection::open_thread_safe(Path::new("data/entries.db")).unwrap(),
@@ -177,7 +177,7 @@ fn get_entries(
 }
 
 fn update_db(content: String, database: &Arc<Mutex<ConnectionThreadSafe>>) {
-    let color = &content[6..13];
+    let color = validate_color(&content[6..13]);
     let name = &content[content.find("&name=").expect("No name id") + 6
         ..content.find("&domain=").expect("No domain id")];
     let mut domain = &content[content.find("&domain=").expect("No domain id") + 8
@@ -255,4 +255,17 @@ fn get_content_type(path: &Path) -> &'static str {
         "txt" => "text/plain; charset=utf8",
         _ => "text/plain; charset=utf8",
     }
+}
+
+fn validate_color(input: &str) -> &str {
+    if input.chars().next().unwrap_or(' ') != '#' {
+        return "#000000";
+    };
+    let valid = "0123456789abcdef";
+    for c in input[1..].chars() {
+        if !valid.contains(c) {
+            return "#000000";
+        }
+    }
+    input
 }
