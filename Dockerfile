@@ -1,17 +1,18 @@
-FROM rust:1.67 as builder
+FROM rust:1.67-alpine AS builder
+RUN apk add --no-cache musl-dev
 WORKDIR /usr/src/guestbook
 COPY . .
 
 RUN cargo build --release 
 
 # Start a fresh image
-FROM debian:bullseye-slim
+FROM alpine
 
 ENV RUST_BACKTRACE=1
 
 WORKDIR /usr/src/guestbook
 
-RUN apt-get update && apt-get install -y libsqlite3-0 && rm -rf /var/lib/apt/lists/*
+RUN apk add --no-cache sqlite-libs
 
 RUN mkdir -p /usr/src/guestbook/data
 
