@@ -43,6 +43,7 @@ form {
 }
 
 button {
+  font-family: win95;
   border: none;
   background-color: #c6c3c6;
   box-shadow:
@@ -108,8 +109,10 @@ textarea:focus {
 input[type="color"] {
   -webkit-appearance: none;
   border: none;
-  width: 1.1em;
+  width: 50%;
+  margin-left: auto;
   height: 1.1em;
+  max-width: 64px;
   background: none;
 }
 
