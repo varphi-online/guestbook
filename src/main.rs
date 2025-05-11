@@ -20,9 +20,14 @@ fn main() {
 
     let query = "
         CREATE TABLE IF NOT EXISTS entries (name TEXT, domain TEXT, message TEXT, color TEXT, time INTEGER, public BOOLEAN);
+        CREATE TABLE IF NOT EXISTS visitor_count (id INTEGER PRIMARY KEY, count INTEGER);
     ";
 
     sqlite.lock().unwrap().execute(query).unwrap();
+
+    let check = "INSERT OR IGNORE INTO visitor_count (id, count) VALUES (1, 0);";
+    sqlite.lock().unwrap().execute(check).unwrap();
+
     println!("Now listening on {}", addr);
 
     let shutdown_signal = Arc::new(AtomicBool::new(false));
@@ -63,21 +68,28 @@ fn main() {
                         match request.method() {
                             Method::Get => {
                                 match request.url() {
-                                    "/entries" => get_entries(&sqlite, Some(request)),
-                                    _ => file_route(request),
+                                    "/entries" => {get_entries(&sqlite, Some(request)); return ()},
+                                    "/visitor_count" => get_visitor_count(&sqlite, request),
+                                    _ => {file_route(request);return()},
                                 };
                             }
-                            Method::Post => {
-                                let mut content = String::new();
-                                request.as_reader().read_to_string(&mut content).unwrap();
-                                update_db(decode(content.as_str()).unwrap().to_string(), &sqlite);
-                                let (html, header) = get_entries(&sqlite, None).unwrap();
-                                let _ = request.respond(
-                                    Response::from_string(html.into_string())
-                                        .with_header(header)
-                                        .with_status_code(StatusCode::from(201)),
-                                );
-                            }
+                            Method::Post => match request.url() {
+                                "/visitor_count" => increment_visitor_count(&sqlite, request),
+                                _ => {
+                                    let mut content = String::new();
+                                    request.as_reader().read_to_string(&mut content).unwrap();
+                                    update_db(
+                                        decode(content.as_str()).unwrap().to_string(),
+                                        &sqlite,
+                                    );
+                                    let (html, header) = get_entries(&sqlite, None).unwrap();
+                                    let _ = request.respond(
+                                        Response::from_string(html.into_string())
+                                            .with_header(header)
+                                            .with_status_code(StatusCode::from(201)),
+                                    );
+                                }
+                            },
                             _ => (),
                         }
                         if shutdown_signal.load(Ordering::Relaxed) {
@@ -265,4 +277,31 @@ fn validate_color(input: &str) -> &str {
         }
     }
     input
+}
+
+fn increment_visitor_count(db: &Arc<Mutex<ConnectionThreadSafe>>, request: Request) {
+    let db = db.lock().unwrap();
+    // Increment the count
+    db.execute("UPDATE visitor_count SET count = count + 1 WHERE id = 1;")
+        .unwrap();
+    let response =
+        tiny_http::Response::empty(200);
+    let _ = request.respond(response);
+}
+
+fn get_visitor_count(db: &Arc<Mutex<ConnectionThreadSafe>>, request: Request) {
+    let db = db.lock().unwrap();
+    let mut stmt = db
+        .prepare("SELECT * FROM visitor_count WHERE id = 1;")
+        .unwrap();
+    let mut count = 0;
+    while let Ok(State::Row) = stmt.next() {
+        count = stmt.read::<i64, _>("count").unwrap();
+    }    
+    let response =
+        tiny_http::Response::from_string(count.to_string()).with_header(tiny_http::Header {
+            field: "Content-Type".parse().unwrap(),
+            value: AsciiString::from_ascii("application/json").unwrap(),
+        });
+    let _ = request.respond(response);
 }
