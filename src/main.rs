@@ -10,6 +10,8 @@ use std::{env, fs::*, path::*, str::FromStr, thread};
 use tiny_http::*;
 use urlencoding::decode;
 
+const ALLOWED_ORIGIN: &str = "https://varphi.online";
+
 fn main() {
     let addr: String = env::args().nth(1).unwrap_or("0.0.0.0:8080".to_string());
     println!("Initializing server . . .");
@@ -68,9 +70,18 @@ fn main() {
                         match request.method() {
                             Method::Get => {
                                 match request.url() {
-                                    "/entries" => {get_entries(&sqlite, Some(request)); return ()},
-                                    "/visitor_count" => get_visitor_count(&sqlite, request),
-                                    _ => {file_route(request);return()},
+                                    "/entries" => {
+                                        get_entries(&sqlite, Some(request));
+                                        // No return here, let the loop continue
+                                    }
+                                    "/visitor_count" => {
+                                        get_visitor_count(&sqlite, request);
+                                        // No return here
+                                    }
+                                    _ => {
+                                        file_route(request);
+                                        // No return here
+                                    }
                                 };
                             }
                             Method::Post => match request.url() {
@@ -90,7 +101,37 @@ fn main() {
                                     );
                                 }
                             },
-                            _ => (),
+                            Method::Options => {
+                                // Handle preflight requests
+                                if request.url() == "/visitor_count" {
+                                    // Respond to preflight requests for /visitor_count
+                                    let response = Response::empty(StatusCode(204)) // 204 No Content is typical
+                                    .with_header(Header {
+                                        field: "Access-Control-Allow-Origin".parse().unwrap(),
+                                        value: AsciiString::from_str(ALLOWED_ORIGIN).unwrap(),
+                                    })
+                                    .with_header(Header {
+                                        field: "Access-Control-Allow-Methods".parse().unwrap(),
+                                        value: AsciiString::from_str("POST, GET, OPTIONS").unwrap(),
+                                    })
+                                    .with_header(Header {
+                                        field: "Access-Control-Allow-Headers".parse().unwrap(),
+                                        value: AsciiString::from_str("Content-Type").unwrap(),
+                                    })
+                                    .with_header(Header { 
+                                        field: "Access-Control-Max-Age".parse().unwrap(),
+                                        value: AsciiString::from_str("86400").unwrap(), 
+                                    });
+                                    let _ = request.respond(response);
+                                } else {
+                                    let response = Response::empty(StatusCode(404));
+                                    let _ = request.respond(response);
+                                }
+                            }
+                            _ => {
+                                let response = Response::empty(StatusCode(405));
+                                let _ = request.respond(response);
+                            }
                         }
                         if shutdown_signal.load(Ordering::Relaxed) {
                             println!("Thread {} stopping gracefully", thread_id);
@@ -284,8 +325,11 @@ fn increment_visitor_count(db: &Arc<Mutex<ConnectionThreadSafe>>, request: Reque
     // Increment the count
     db.execute("UPDATE visitor_count SET count = count + 1 WHERE id = 1;")
         .unwrap();
-    let response =
-        tiny_http::Response::empty(200);
+    let response = tiny_http::Response::empty(200).with_header(Header {
+        // Add CORS header
+        field: "Access-Control-Allow-Origin".parse().unwrap(),
+        value: AsciiString::from_str(ALLOWED_ORIGIN).unwrap(),
+    });
     let _ = request.respond(response);
 }
 
@@ -297,11 +341,15 @@ fn get_visitor_count(db: &Arc<Mutex<ConnectionThreadSafe>>, request: Request) {
     let mut count = 0;
     while let Ok(State::Row) = stmt.next() {
         count = stmt.read::<i64, _>("count").unwrap();
-    }    
-    let response =
-        tiny_http::Response::from_string(count.to_string()).with_header(tiny_http::Header {
+    }
+    let response = tiny_http::Response::from_string(count.to_string())
+        .with_header(tiny_http::Header {
             field: "Content-Type".parse().unwrap(),
             value: AsciiString::from_ascii("application/json").unwrap(),
+        })
+        .with_header(Header {
+            field: "Access-Control-Allow-Origin".parse().unwrap(),
+            value: AsciiString::from_str(ALLOWED_ORIGIN).unwrap(),
         });
     let _ = request.respond(response);
 }
